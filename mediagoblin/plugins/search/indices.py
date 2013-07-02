@@ -7,9 +7,6 @@ from whoosh import index
 
 config = pluginapi.get_config('mediagoblin.plugins.search')
 
-SEARCH_INDEX_DIR = config['search_index_dir']
-USE_MULTIPROCESSING = config['use_multiprocessing']
-
 
 class SearchIndex(object):
     """
@@ -20,15 +17,27 @@ class SearchIndex(object):
     index.
     """
     
-    def __init__(self, search_index_dir=SEARCH_INDEX_DIR,
-            use_multiprocessing=USE_MULTIPROCESSING):
+    def __init__(self, search_index_dir=None, use_multiprocessing=None):
         self.schema = None
         self.search_index = None
         self.search_index_name = self.__class__.__name__.lower()
+        
         self.search_index_dir = search_index_dir
-        self.use_multiprocessing = use_multiprocessing
+        if not self.search_index_dir:
+            self.search_index_dir = config['search_index_dir']
+        
+        self.use_multiprocessing = use_multiprocessing 
+        if not self.use_multiprocessing:
+            self.use_multiprocessing = config['use_multiprocessing']
 
     def _index_exists(self):
+        """
+        Returns whether a valid index exists in self.search_index_dir.
+        
+        If self.search_index is None, it implies that no index has been
+        created yet. In this case, and IndexDoesNotExistsError exception
+        is raised.
+        """
         if not self.search_index:
             raise IndexDoesNotExistsError(
                 self.search_index_dir, self.search_index_name)
