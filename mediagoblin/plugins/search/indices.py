@@ -3,7 +3,9 @@ import os
 from mediagoblin.tools import pluginapi
 from mediagoblin.plugins.search.exceptions import IndexDoesNotExistsError
 
-from whoosh import index
+import whoosh
+
+from whoosh.filedb.multiproc import MultiSegmentWriter
 
 config = pluginapi.get_config('mediagoblin.plugins.search')
 
@@ -42,7 +44,7 @@ class SearchIndex(object):
             raise IndexDoesNotExistsError(
                 self.search_index_dir, self.search_index_name)
         
-        if self.index.exists_in(
+        if self.search_index.exists_in(
             self.search_index_dir, indexname=self.search_index_name):
             return True
 
@@ -71,8 +73,8 @@ class SearchIndex(object):
         if not os.path.exists(self.search_index_dir):
             os.mkdir(self.search_index_dir)
 
-        self.search_index = index.create_in(self.search_index_dir,
-                indexname=self.search_index_name)
+        self.search_index = whoosh.index.create_in(self.search_index_dir,
+                indexname=self.search_index_name, schema=schema)
          
     def add_document(self, **document):
         """
