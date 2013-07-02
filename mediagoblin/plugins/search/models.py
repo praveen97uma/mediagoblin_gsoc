@@ -1,11 +1,11 @@
-import oggs
+import os
 
-from mediagoblin.tools import plugin_api
-from mediagoblin.plugins.search.exceptions import IndexDoesNotExistError
+from mediagoblin.tools import pluginapi
+from mediagoblin.plugins.search.exceptions import IndexDoesNotExistsError
 
 from whoosh import index
 
-config = plugin_api.get_config('mediagoblin.plugins.search')
+config = pluginapi.get_config('mediagoblin.plugins.search')
 
 SEARCH_INDEX_DIR = config['search_index_dir']
 USE_MULTIPROCESSING = config['use_multiprocessing']
@@ -27,10 +27,10 @@ class SearchIndex(object):
         self.search_index_name = self.__class__.__name__.lower()
         self.search_index_dir = search_index_dir
         self.use_multiprocessing = use_multiprocessing
-    
+
     def _index_exists(self):
         if not self.search_index:
-            raise IndexDoesNotExists(
+            raise IndexDoesNotExistsError(
                 self.search_index_dir, self.search_index_name)
         
         if self.index.exists_in(
