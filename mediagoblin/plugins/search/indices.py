@@ -21,6 +21,7 @@ class SearchIndex(object):
     
     def __init__(self, search_index_dir=None, use_multiprocessing=None):
         self.schema = None
+        self.field_names = None
         self.search_index = None
         self.search_index_name = self.__class__.__name__.lower()
         
@@ -75,7 +76,9 @@ class SearchIndex(object):
 
         self.search_index = whoosh.index.create_in(self.search_index_dir,
                 indexname=self.search_index_name, schema=schema)
-         
+        
+        self.field_names = schema.names()
+
     def add_document(self, **document):
         """
         Adds a document to the index represented by this class.
