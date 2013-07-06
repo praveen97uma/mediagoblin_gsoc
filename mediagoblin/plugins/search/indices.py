@@ -2,6 +2,7 @@ import os
 
 from mediagoblin.tools import pluginapi
 from mediagoblin.plugins.search.exceptions import IndexDoesNotExistsError
+from mediagoblin.plugins.search.schemas import MediaEntryIndexSchema
 
 import whoosh
 
@@ -19,9 +20,11 @@ class SearchIndex(object):
     index.
     """
     
-    def __init__(self, search_index_dir=None, use_multiprocessing=None):
-        self.schema = None
+    def __init__(self, schema=None, search_index_dir=None, use_multiprocessing=None):
+        self.schema = schema
         self.field_names = None
+        self.create_index(self.schema)
+
         self.search_index = None
         self.search_index_name = self.__class__.__name__.lower()
         
@@ -71,6 +74,9 @@ class SearchIndex(object):
 
         `schema` should be an object of whoosh.fields.Schema.
         """
+        if not schema:
+            return
+
         if not os.path.exists(self.search_index_dir):
             os.mkdir(self.search_index_dir)
 
@@ -113,3 +119,11 @@ class SearchIndex(object):
         writer.update_document(**document)
         writer.commit()
 
+class MediaEntrySearchIndex(SearchIndex):
+    def __init__(self, schema=MediaEntryIndexSchema, 
+            search_index_dir=None, use_multiprocessing=None):
+        super(MediaEntrySearchIndex, self).__init__(
+            schema=schema
+            search_index_dir=search_index_dir,
+            use_multiprocessing=use_multiprocessing
+        )

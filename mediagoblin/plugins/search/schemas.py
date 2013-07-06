@@ -4,7 +4,7 @@ from whoosh.fields import TEXT
 from whoosh.fields import DATETIME
 
 
-class MediaEntrySearchSchema(SchemaClass):
+class MediaEntryIndexSchema(SchemaClass):
     """
     Represents the schema of the search index corresponding 
     to db.models.MediaEntry objects.
