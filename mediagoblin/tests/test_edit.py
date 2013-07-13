@@ -19,8 +19,8 @@ import urlparse
 from mediagoblin import mg_globals
 from mediagoblin.db.models import User
 from mediagoblin.tests.tools import fixture_add_user
+from mediagoblin import auth
 from mediagoblin.tools import template, mail
-from mediagoblin.auth.lib import bcrypt_check_password
 
 
 class TestUserEdit(object):
@@ -74,7 +74,7 @@ class TestUserEdit(object):
 
         # test_user has to be fetched again in order to have the current values
         test_user = User.query.filter_by(username=u'chris').first()
-        assert bcrypt_check_password('123456', test_user.pw_hash)
+        assert auth.check_password('123456', test_user.pw_hash)
         # Update current user passwd
         self.user_password = '123456'
 
@@ -88,7 +88,7 @@ class TestUserEdit(object):
                 })
 
         test_user = User.query.filter_by(username=u'chris').first()
-        assert not bcrypt_check_password('098765', test_user.pw_hash)
+        assert not auth.check_password('098765', test_user.pw_hash)
 
 
     def test_change_bio_url(self, test_app):
@@ -190,8 +190,8 @@ class TestUserEdit(object):
         assert urlparse.urlsplit(res.location)[2] == '/'
 
         # Email shouldn't be saved
-        email_in_db = mg_globals.database.User.find_one(
-            {'email': 'new@example.com'})
+        email_in_db = mg_globals.database.User.query.filter_by(
+            email='new@example.com').first()
         email = User.query.filter_by(username='chris').first().email
         assert email_in_db is None
         assert email == 'chris@example.com'

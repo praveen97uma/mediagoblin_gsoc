@@ -23,15 +23,15 @@ from werkzeug.utils import secure_filename
 from mediagoblin import messages
 from mediagoblin import mg_globals
 
-from mediagoblin.auth import lib as auth_lib
+from mediagoblin import auth
 from mediagoblin.auth import tools as auth_tools
-from mediagoblin.auth.views import email_debug_message
 from mediagoblin.edit import forms
 from mediagoblin.edit.lib import may_edit_media
 from mediagoblin.decorators import (require_active_login, active_user_from_url,
                             get_media_entry_by_id, user_may_alter_collection,
                             get_user_collection)
 from mediagoblin.tools.crypto import get_timed_signer_url
+from mediagoblin.tools.mail import email_debug_message
 from mediagoblin.tools.response import (render_to_response,
                                         redirect, redirect_obj, render_404)
 from mediagoblin.tools.translate import pass_to_ugettext as _
@@ -236,30 +236,7 @@ def edit_account(request):
         user.license_preference = form.license_preference.data
 
         if form.new_email.data:
-            new_email = form.new_email.data
-            users_with_email = User.query.filter_by(
-                email=new_email).count()
-            if users_with_email:
-                form.new_email.errors.append(
-                    _('Sorry, a user with that email address'
-                      ' already exists.'))
-            else:
-                verification_key = get_timed_signer_url(
-                    'mail_verification_token').dumps({
-                        'user': user.id,
-                        'email': new_email})
-
-                rendered_email = render_template(
-                    request, 'mediagoblin/edit/verification.txt',
-                    {'username': user.username,
-                     'verification_url': EMAIL_VERIFICATION_TEMPLATE.format(
-                        uri=request.urlgen('mediagoblin.edit.verify_email',
-                                           qualified=True),
-                        verification_key=verification_key)})
-
-                email_debug_message(request)
-                auth_tools.send_verification_email(user, request, new_email,
-                                                 rendered_email)
+            _update_email(request, form, user)
 
         if not form.errors:
             user.save()
@@ -328,9 +305,9 @@ def edit_collection(request, collection):
                 form.slug.data, collection.id)
 
         # Make sure there isn't already a Collection with this title
-        existing_collection = request.db.Collection.find_one({
-                'creator': request.user.id,
-                'title':form.title.data})
+        existing_collection = request.db.Collection.query.filter_by(
+                creator=request.user.id,
+                title=form.title.data).first()
 
         if existing_collection and existing_collection.id != collection.id:
             messages.add_message(
@@ -365,12 +342,16 @@ def edit_collection(request, collection):
 
 @require_active_login
 def change_pass(request):
+    # If no password authentication, no need to change your password
+    if 'pass_auth' not in request.template_env.globals:
+        return redirect(request, 'index')
+
     form = forms.ChangePassForm(request.form)
     user = request.user
 
     if request.method == 'POST' and form.validate():
 
-        if not auth_lib.bcrypt_check_password(
+        if not auth.check_password(
                 form.old_password.data, user.pw_hash):
             form.old_password.errors.append(
                 _('Wrong password'))
@@ -382,7 +363,7 @@ def change_pass(request):
                  'user': user})
 
         # Password matches
-        user.pw_hash = auth_lib.bcrypt_gen_password_hash(
+        user.pw_hash = auth.gen_password_hash(
             form.new_password.data)
         user.save()
 
@@ -442,3 +423,32 @@ def verify_email(request):
     return redirect(
         request, 'mediagoblin.user_pages.user_home',
         user=user.username)
+
+
+def _update_email(request, form, user):
+    new_email = form.new_email.data
+    users_with_email = User.query.filter_by(
+        email=new_email).count()
+
+    if users_with_email:
+        form.new_email.errors.append(
+            _('Sorry, a user with that email address'
+                ' already exists.'))
+
+    elif not users_with_email:
+        verification_key = get_timed_signer_url(
+            'mail_verification_token').dumps({
+                'user': user.id,
+                'email': new_email})
+
+        rendered_email = render_template(
+            request, 'mediagoblin/edit/verification.txt',
+            {'username': user.username,
+                'verification_url': EMAIL_VERIFICATION_TEMPLATE.format(
+                uri=request.urlgen('mediagoblin.edit.verify_email',
+                                   qualified=True),
+                verification_key=verification_key)})
+
+        email_debug_message(request)
+        auth_tools.send_verification_email(user, request, new_email,
+                                           rendered_email)

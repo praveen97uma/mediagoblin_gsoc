@@ -42,7 +42,7 @@ class DatabaseData(object):
             self.name, self.models, self.migrations, session)
 
 
-def gather_database_data(media_types, plugins):
+def gather_database_data(plugins):
     """
     Gather all database data relevant to the extensions we have
     installed so we can do migrations and table initialization.
@@ -58,13 +58,6 @@ def gather_database_data(media_types, plugins):
     managed_dbdata.append(
         DatabaseData(
             u'__main__', MAIN_MODELS, MAIN_MIGRATIONS))
-
-    # Then get all registered media managers (eventually, plugins)
-    for media_type in media_types:
-        models = import_component('%s.models:MODELS' % media_type)
-        migrations = import_component('%s.migrations:MIGRATIONS' % media_type)
-        managed_dbdata.append(
-            DatabaseData(media_type, models, migrations))
 
     for plugin in plugins:
         try:
@@ -110,13 +103,24 @@ def run_dbupdate(app_config, global_config):
     in the future, plugins)
     """
 
-    # Gather information from all media managers / projects
-    dbdatas = gather_database_data(
-            app_config['media_types'],
-            global_config.get('plugins', {}).keys())
-
     # Set up the database
     db = setup_connection_and_db_from_config(app_config, migrations=True)
+    #Run the migrations
+    run_all_migrations(db, app_config, global_config)
+
+
+def run_all_migrations(db, app_config, global_config):
+    """
+    Initializes or migrates a database that already has a 
+    connection setup and also initializes or migrates all
+    extensions based on the config files.
+
+    It can be used to initialize an in-memory database for
+    testing.
+    """
+    # Gather information from all media managers / projects
+    dbdatas = gather_database_data(
+            global_config.get('plugins', {}).keys())
 
     Session = sessionmaker(bind=db.engine)
 

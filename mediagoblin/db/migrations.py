@@ -307,6 +307,7 @@ def drop_token_related_User_columns(db):
 
     db.commit()
 
+
 class CommentSubscription_v0(declarative_base()):
     __tablename__ = 'core__comment_subscriptions'
     id = Column(Integer, primary_key=True)
@@ -361,3 +362,20 @@ def add_new_notification_tables(db):
     Notification_v0.__table__.create(db.bind)
     CommentNotification_v0.__table__.create(db.bind)
     ProcessingNotification_v0.__table__.create(db.bind)
+
+
+@RegisterMigration(13, MIGRATIONS)
+def pw_hash_nullable(db):
+    """Make pw_hash column nullable"""
+    metadata = MetaData(bind=db.bind)
+    user_table = inspect_table(metadata, "core__users")
+
+    user_table.c.pw_hash.alter(nullable=True)
+
+    # sqlite+sqlalchemy seems to drop this constraint during the
+    # migration, so we add it back here for now a bit manually.
+    if db.bind.url.drivername == 'sqlite':
+        constraint = UniqueConstraint('username', table=user_table)
+        constraint.create()
+
+    db.commit()
