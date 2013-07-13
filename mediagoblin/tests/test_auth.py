@@ -13,54 +13,15 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import urlparse
-import datetime
+import pkg_resources
+import pytest
 
 from mediagoblin import mg_globals
-from mediagoblin.auth import lib as auth_lib
 from mediagoblin.db.models import User
-from mediagoblin.tests.tools import fixture_add_user
+from mediagoblin.tests.tools import get_app, fixture_add_user
 from mediagoblin.tools import template, mail
-
-
-########################
-# Test bcrypt auth funcs
-########################
-
-def test_bcrypt_check_password():
-    # Check known 'lollerskates' password against check function
-    assert auth_lib.bcrypt_check_password(
-        'lollerskates',
-        '$2a$12$PXU03zfrVCujBhVeICTwtOaHTUs5FFwsscvSSTJkqx/2RQ0Lhy/nO')
-
-    assert not auth_lib.bcrypt_check_password(
-        'notthepassword',
-        '$2a$12$PXU03zfrVCujBhVeICTwtOaHTUs5FFwsscvSSTJkqx/2RQ0Lhy/nO')
-
-    # Same thing, but with extra fake salt.
-    assert not auth_lib.bcrypt_check_password(
-        'notthepassword',
-        '$2a$12$ELVlnw3z1FMu6CEGs/L8XO8vl0BuWSlUHgh0rUrry9DUXGMUNWwl6',
-        '3><7R45417')
-
-
-def test_bcrypt_gen_password_hash():
-    pw = 'youwillneverguessthis'
-
-    # Normal password hash generation, and check on that hash
-    hashed_pw = auth_lib.bcrypt_gen_password_hash(pw)
-    assert auth_lib.bcrypt_check_password(
-        pw, hashed_pw)
-    assert not auth_lib.bcrypt_check_password(
-        'notthepassword', hashed_pw)
-
-    # Same thing, extra salt.
-    hashed_pw = auth_lib.bcrypt_gen_password_hash(pw, '3><7R45417')
-    assert auth_lib.bcrypt_check_password(
-        pw, hashed_pw, '3><7R45417')
-    assert not auth_lib.bcrypt_check_password(
-        'notthepassword', hashed_pw, '3><7R45417')
+from mediagoblin.auth import tools as auth_tools
 
 
 def test_register_views(test_app):
@@ -132,8 +93,8 @@ def test_register_views(test_app):
     assert 'mediagoblin/user_pages/user.html' in template.TEMPLATE_TEST_CONTEXT
 
     ## Make sure user is in place
-    new_user = mg_globals.database.User.find_one(
-        {'username': u'happygirl'})
+    new_user = mg_globals.database.User.query.filter_by(
+        username=u'happygirl').first()
     assert new_user
     assert new_user.status == u'needs_email_verification'
     assert new_user.email_verified == False
@@ -167,8 +128,8 @@ def test_register_views(test_app):
 
     # assert context['verification_successful'] == True
     # TODO: Would be good to test messages here when we can do so...
-    new_user = mg_globals.database.User.find_one(
-        {'username': u'happygirl'})
+    new_user = mg_globals.database.User.query.filter_by(
+        username=u'happygirl').first()
     assert new_user
     assert new_user.status == u'needs_email_verification'
     assert new_user.email_verified == False
@@ -181,8 +142,8 @@ def test_register_views(test_app):
         'mediagoblin/user_pages/user.html']
     # assert context['verification_successful'] == True
     # TODO: Would be good to test messages here when we can do so...
-    new_user = mg_globals.database.User.find_one(
-        {'username': u'happygirl'})
+    new_user = mg_globals.database.User.query.filter_by(
+        username=u'happygirl').first()
     assert new_user
     assert new_user.status == u'active'
     assert new_user.email_verified == True
@@ -274,6 +235,7 @@ def test_authentication_views(test_app):
     # Make a new user
     test_user = fixture_add_user(active_user=False)
 
+
     # Get login
     # ---------
     test_app.get('/auth/login/')
@@ -286,7 +248,6 @@ def test_authentication_views(test_app):
     context = template.TEMPLATE_TEST_CONTEXT['mediagoblin/auth/login.html']
     form = context['login_form']
     assert form.username.errors == [u'This field is required.']
-    assert form.password.errors == [u'This field is required.']
 
     # Failed login - blank user
     # -------------------------
@@ -304,9 +265,7 @@ def test_authentication_views(test_app):
     response = test_app.post(
         '/auth/login/', {
             'username': u'chris'})
-    context = template.TEMPLATE_TEST_CONTEXT['mediagoblin/auth/login.html']
-    form = context['login_form']
-    assert form.password.errors == [u'This field is required.']
+    assert 'mediagoblin/auth/login.html' in template.TEMPLATE_TEST_CONTEXT
 
     # Failed login - bad user
     # -----------------------
@@ -370,3 +329,47 @@ def test_authentication_views(test_app):
             'password': 'toast',
             'next' : '/u/chris/'})
     assert urlparse.urlsplit(response.location)[2] == '/u/chris/'
+
+
+@pytest.fixture()
+def authentication_disabled_app(request):
+    return get_app(
+        request,
+        mgoblin_config=pkg_resources.resource_filename(
+            'mediagoblin.tests.auth_configs',
+            'authentication_disabled_appconfig.ini'))
+
+
+def test_authentication_disabled_app(authentication_disabled_app):
+    # app.auth should = false
+    assert mg_globals.app.auth is False
+
+    # Try to visit register page
+    template.clear_test_template_context()
+    response = authentication_disabled_app.get('/auth/register/')
+    response.follow()
+
+    # Correct redirect?
+    assert urlparse.urlsplit(response.location)[2] == '/'
+    assert 'mediagoblin/root.html' in template.TEMPLATE_TEST_CONTEXT
+
+    # Try to vist login page
+    template.clear_test_template_context()
+    response = authentication_disabled_app.get('/auth/login/')
+    response.follow()
+
+    # Correct redirect?
+    assert urlparse.urlsplit(response.location)[2] == '/'
+    assert 'mediagoblin/root.html' in template.TEMPLATE_TEST_CONTEXT
+
+    ## Test check_login_simple should return None
+    assert auth_tools.check_login_simple('test', 'simple') is None
+
+    # Try to visit the forgot password page
+    template.clear_test_template_context()
+    response = authentication_disabled_app.get('/auth/register/')
+    response.follow()
+
+    # Correct redirect?
+    assert urlparse.urlsplit(response.location)[2] == '/'
+    assert 'mediagoblin/root.html' in template.TEMPLATE_TEST_CONTEXT

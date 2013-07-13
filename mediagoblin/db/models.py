@@ -62,7 +62,7 @@ class User(Base, UserMixin):
     # the RFC) and because it would be a mess to implement at this
     # point.
     email = Column(Unicode, nullable=False)
-    pw_hash = Column(Unicode, nullable=False)
+    pw_hash = Column(Unicode)
     email_verified = Column(Boolean, default=False)
     created = Column(DateTime, nullable=False, default=datetime.datetime.now)
     status = Column(Unicode, default=u"needs_email_verification", nullable=False)

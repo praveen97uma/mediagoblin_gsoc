@@ -65,6 +65,8 @@ class EditAccountForm(wtforms.Form):
         _('New email address'),
         [wtforms.validators.Optional(),
          normalize_user_or_email_field(allow_user=False)])
+    wants_comment_notification = wtforms.BooleanField(
+        description=_("Email me when others comment on my media"))
     license_preference = wtforms.SelectField(
         _('License preference'),
         [
@@ -73,8 +75,6 @@ class EditAccountForm(wtforms.Form):
         ],
         choices=licenses_as_choices(),
         description=_('This will be your default license on upload forms.'))
-    wants_comment_notification = wtforms.BooleanField(
-        label=_("Email me when others comment on my media"))
 
 
 class EditAttachmentsForm(wtforms.Form):

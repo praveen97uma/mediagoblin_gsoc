@@ -14,37 +14,37 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import uuid
 from itsdangerous import BadSignature
 
 from mediagoblin import messages, mg_globals
 from mediagoblin.db.models import User
 from mediagoblin.tools.crypto import get_timed_signer_url
+from mediagoblin.decorators import auth_enabled, allow_registration
 from mediagoblin.tools.response import render_to_response, redirect, render_404
 from mediagoblin.tools.translate import pass_to_ugettext as _
 from mediagoblin.tools.mail import email_debug_message
-from mediagoblin.auth import lib as auth_lib
+from mediagoblin.tools.pluginapi import hook_handle
 from mediagoblin.auth import forms as auth_forms
-from mediagoblin.auth.lib import send_fp_verification_email
 from mediagoblin.auth.tools import (send_verification_email, register_user,
+                                    send_fp_verification_email,
                                     check_login_simple)
+from mediagoblin import auth
 
 
+@allow_registration
+@auth_enabled
 def register(request):
     """The registration view.
 
     Note that usernames will always be lowercased. Email domains are lowercased while
     the first part remains case-sensitive.
     """
-    # Redirects to indexpage if registrations are disabled
-    if not mg_globals.app_config["allow_registration"]:
-        messages.add_message(
-            request,
-            messages.WARNING,
-            _('Sorry, registration is disabled on this instance.'))
-        return redirect(request, "index")
+    if 'pass_auth' not in request.template_env.globals:
+        redirect_name = hook_handle('auth_no_pass_redirect')
+        return redirect(request, 'mediagoblin.plugins.{0}.register'.format(
+            redirect_name))
 
-    register_form = auth_forms.RegistrationForm(request.form)
+    register_form = hook_handle("auth_get_registration_form", request)
 
     if request.method == 'POST' and register_form.validate():
         # TODO: Make sure the user doesn't exist already
@@ -60,28 +60,36 @@ def register(request):
     return render_to_response(
         request,
         'mediagoblin/auth/register.html',
-        {'register_form': register_form})
+        {'register_form': register_form,
+         'post_url': request.urlgen('mediagoblin.auth.register')})
 
 
+@auth_enabled
 def login(request):
     """
     MediaGoblin login view.
 
     If you provide the POST with 'next', it'll redirect to that view.
     """
-    login_form = auth_forms.LoginForm(request.form)
+    if 'pass_auth' not in request.template_env.globals:
+        redirect_name = hook_handle('auth_no_pass_redirect')
+        return redirect(request, 'mediagoblin.plugins.{0}.login'.format(
+            redirect_name))
+
+    login_form = hook_handle("auth_get_login_form", request)
 
     login_failed = False
 
     if request.method == 'POST':
-
-        username = login_form.data['username']
+        username = login_form.username.data
 
         if login_form.validate():
-            user = check_login_simple(username, login_form.password.data, True)
+            user = check_login_simple(username, login_form.password.data)
 
             if user:
                 # set up login in session
+                if login_form.stay_logged_in.data:
+                    request.session['stay_logged_in'] = True
                 request.session['user_id'] = unicode(user.id)
                 request.session.save()
 
@@ -98,6 +106,7 @@ def login(request):
         {'login_form': login_form,
          'next': request.GET.get('next') or request.form.get('next'),
          'login_failed': login_failed,
+         'post_url': request.urlgen('mediagoblin.auth.login'),
          'allow_registration': mg_globals.app_config["allow_registration"]})
 
 
@@ -198,13 +207,16 @@ def forgot_password(request):
     Sends an email with an url to renew forgotten password.
     Use GET querystring parameter 'username' to pre-populate the input field
     """
+    if not 'pass_auth' in request.template_env.globals:
+        return redirect(request, 'index')
+
     fp_form = auth_forms.ForgotPassForm(request.form,
                                         username=request.args.get('username'))
 
     if not (request.method == 'POST' and fp_form.validate()):
         # Either GET request, or invalid form submitted. Display the template
         return render_to_response(request,
-            'mediagoblin/auth/forgot_password.html', {'fp_form': fp_form})
+            'mediagoblin/auth/forgot_password.html', {'fp_form': fp_form,})
 
     # If we are here: method == POST and form is valid. username casing
     # has been sanitized. Store if a user was found by email. We should
@@ -295,7 +307,7 @@ def verify_forgot_password(request):
         cp_form = auth_forms.ChangePassForm(formdata_vars)
 
         if request.method == 'POST' and cp_form.validate():
-            user.pw_hash = auth_lib.bcrypt_gen_password_hash(
+            user.pw_hash = auth.gen_password_hash(
                 cp_form.password.data)
             user.save()
 
@@ -308,7 +320,7 @@ def verify_forgot_password(request):
             return render_to_response(
                 request,
                 'mediagoblin/auth/change_fp.html',
-                {'cp_form': cp_form})
+                {'cp_form': cp_form,})
 
     if not user.email_verified:
         messages.add_message(
