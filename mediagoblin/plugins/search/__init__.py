@@ -19,9 +19,20 @@ import logging
 
 from mediagoblin.tools import pluginapi
 
+from mediagoblin.plugins.search import indices
+
+from sqlalchemy import event
+from mediagoblin.db.models import MediaEntry
+
 _log = logging.getLogger(__name__)
 
 PLUGIN_DIR = os.path.dirname(__file__)
+
+
+def mediaentry_add_listener(mapper, connection, target):
+    _log.info("Received request for addding mediaentry")
+    _log.info(type(connection))
+    _log.info(target.title)
 
 def setup_plugin():
     _log.info('Setting up Search...')
@@ -37,6 +48,11 @@ def setup_plugin():
     ]
 
     pluginapi.register_routes(routes)
+    indices.register_indices()
+    #event.listen(MediaEntry, 'after_insert', mediaentry_add_listener)
+    #event.listen(MediaEntry, 'before_insert', mediaentry_before_add_listener)
+    #_log.info("Registered listening event") 
+
 
 hooks = {
     'setup': setup_plugin}
