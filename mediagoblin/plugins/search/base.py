@@ -8,8 +8,8 @@ from mediagoblin.plugins.search.schemas import MediaEntryIndexSchema
 import whoosh
 
 from whoosh.filedb.multiproc import MultiSegmentWriter
+from whoosh.qparser import MultifieldParser
 
-config = pluginapi.get_config('mediagoblin.plugins.search')
 _log = logging.getLogger(__name__)
 
 
@@ -23,6 +23,8 @@ class SearchIndex(object):
     """
     
     def __init__(self, model, schema, search_index_dir=None, use_multiprocessing=None):
+        
+        self.config = pluginapi.get_config('mediagoblin.plugins.search')
         self.schema = schema()
         self.field_names = self.schema.names()
         
@@ -36,11 +38,11 @@ class SearchIndex(object):
 
         self.search_index_dir = search_index_dir
         if not self.search_index_dir:
-            self.search_index_dir = config['search_index_dir']
+            self.search_index_dir = self.config['search_index_dir']
         self.search_index_dir += self.identifier 
         self.use_multiprocessing = use_multiprocessing 
         if not self.use_multiprocessing:
-            self.use_multiprocessing = config['use_multiprocessing']
+            self.use_multiprocessing = self.config['use_multiprocessing']
     
         self.create_index()
 
@@ -56,7 +58,7 @@ class SearchIndex(object):
             raise IndexDoesNotExistsError(
                 self.search_index_dir, self.search_index_name)
         
-        if self.search_index.exists_in(
+        if whoosh.index.exists_in(
             self.search_index_dir, indexname=self.search_index_name):
             return True
 
@@ -90,6 +92,8 @@ class SearchIndex(object):
 
         self.search_index = whoosh.index.create_in(self.search_index_dir,
                 indexname=self.search_index_name, schema=self.schema)
+        self.search_index = whoosh.index.open_dir(self.search_index_dir,
+                indexname=self.search_index_name)
         
 
     def add_document(self, **document):
@@ -131,11 +135,20 @@ class SearchIndex(object):
         for name in self.field_names:
             try:
                 attr = getattr(model_obj, name)
+                if isinstance(attr, int):
+                    attr = unicode(attr)
                 document[name] = attr
             except AttributeError:
                 _log.info("Attribute %s not found in %s"%(
-                    name, model_obj.__name__))
-        _log.info("Adding document ", document)
+                    name, model_obj.__class__.__name__))
+        _log.info("Adding document %s"%document['title'])
         
         self.add_document(**document)
 
+    def search(self, query):
+        query = unicode(query)
+        with self.search_index.searcher() as searcher:
+            query = MultifieldParser(self.field_names,
+                self.search_index.schema).parse(query)
+            results = searcher.search(query)
+            return results
