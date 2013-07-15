@@ -19,21 +19,36 @@ import logging
 
 from mediagoblin.tools import pluginapi
 
-from mediagoblin.plugins.search import indices
-
-from sqlalchemy import event
 from mediagoblin.db.models import MediaEntry
+from mediagoblin.plugins.search import schemas
+from mediagoblin.plugins.search.base import SearchIndex
+from mediagoblin.plugins.search import registry
+from mediagoblin.plugins.search import listeners
 
 _log = logging.getLogger(__name__)
 
 PLUGIN_DIR = os.path.dirname(__file__)
 
 
-def mediaentry_add_listener(mapper, connection, target):
-    _log.info("Received request for addding mediaentry")
-    _log.info(type(connection))
-    _log.info(target.title)
+def register_indices():
+    media_entry_search_index = SearchIndex(
+        model = MediaEntry,
+        schema = schemas.MediaEntryIndexSchema,
+    )
 
+    registry.IndexRegistry.register(media_entry_search_index)
+    _log.info("Registered %(index_name)s index for %(model_name)s"%({
+        'index_name': media_entry_search_index.__class__.__name__,
+        'model_name': MediaEntry.__name__}))
+
+
+def activate_orm_events_listeners():
+    indices = registry.IndexRegistry.indices()
+    for index_obj in indices.itervalues():
+        listener = listeners.ORMEventsListener(index_obj.model)
+        listener.activate_listeners()
+        registry.ListenerRegistry.register(listener)
+        
 def setup_plugin():
     _log.info('Setting up Search...')
 
@@ -48,7 +63,8 @@ def setup_plugin():
     ]
 
     pluginapi.register_routes(routes)
-    indices.register_indices()
+    register_indices()
+    activate_orm_events_listeners()
     #event.listen(MediaEntry, 'after_insert', mediaentry_add_listener)
     #event.listen(MediaEntry, 'before_insert', mediaentry_before_add_listener)
     #_log.info("Registered listening event") 
