@@ -1,6 +1,8 @@
+import logging
 import os
 
 from mediagoblin.tools import pluginapi
+from mediagoblin.plugins.search.base import IndexRegistry
 from mediagoblin.plugins.search.exceptions import IndexDoesNotExistsError
 from mediagoblin.plugins.search.schemas import MediaEntryIndexSchema
 
@@ -9,6 +11,7 @@ import whoosh
 from whoosh.filedb.multiproc import MultiSegmentWriter
 
 config = pluginapi.get_config('mediagoblin.plugins.search')
+_log = logging.getLogger(__name__)
 
 
 class SearchIndex(object):
@@ -20,10 +23,9 @@ class SearchIndex(object):
     index.
     """
     
-    def __init__(self, schema=None, search_index_dir=None, use_multiprocessing=None):
+    def __init__(self, model, schema, search_index_dir=None, use_multiprocessing=None):
         self.schema = schema
-        self.field_names = None
-        self.create_index(self.schema)
+        self.field_names = self.schema.field_names
 
         self.search_index = None
         self.search_index_name = self.__class__.__name__.lower()
@@ -35,6 +37,8 @@ class SearchIndex(object):
         self.use_multiprocessing = use_multiprocessing 
         if not self.use_multiprocessing:
             self.use_multiprocessing = config['use_multiprocessing']
+    
+        self.create_index()
 
     def _index_exists(self):
         """
@@ -68,7 +72,7 @@ class SearchIndex(object):
         return writer
 
 
-    def create_index(self, schema):
+    def create_index(self):
         """
         Creates an index from the supplied `schema`.
 
@@ -81,9 +85,8 @@ class SearchIndex(object):
             os.mkdir(self.search_index_dir)
 
         self.search_index = whoosh.index.create_in(self.search_index_dir,
-                indexname=self.search_index_name, schema=schema)
+                indexname=self.search_index_name, schema=self.schema)
         
-        self.field_names = schema.names()
 
     def add_document(self, **document):
         """
@@ -119,11 +122,3 @@ class SearchIndex(object):
         writer.update_document(**document)
         writer.commit()
 
-class MediaEntrySearchIndex(SearchIndex):
-    def __init__(self, schema=MediaEntryIndexSchema, 
-            search_index_dir=None, use_multiprocessing=None):
-        super(MediaEntrySearchIndex, self).__init__(
-            schema=schema
-            search_index_dir=search_index_dir,
-            use_multiprocessing=use_multiprocessing
-        )
