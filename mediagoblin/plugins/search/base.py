@@ -2,7 +2,6 @@ import logging
 import os
 
 from mediagoblin.tools import pluginapi
-from mediagoblin.plugins.search.base import IndexRegistry
 from mediagoblin.plugins.search.exceptions import IndexDoesNotExistsError
 from mediagoblin.plugins.search.schemas import MediaEntryIndexSchema
 
@@ -24,16 +23,21 @@ class SearchIndex(object):
     """
     
     def __init__(self, model, schema, search_index_dir=None, use_multiprocessing=None):
-        self.schema = schema
-        self.field_names = self.schema.field_names
+        self.schema = schema()
+        self.field_names = self.schema.names()
+        
+        self.model = model
+        self.identifier = self.model.__tablename__
 
         self.search_index = None
-        self.search_index_name = self.__class__.__name__.lower()
-        
+        self.search_index_name = ''.join([
+            model.__name__,
+            self.__class__.__name__.lower()])
+
         self.search_index_dir = search_index_dir
         if not self.search_index_dir:
             self.search_index_dir = config['search_index_dir']
-        
+        self.search_index_dir += self.identifier 
         self.use_multiprocessing = use_multiprocessing 
         if not self.use_multiprocessing:
             self.use_multiprocessing = config['use_multiprocessing']
@@ -78,7 +82,7 @@ class SearchIndex(object):
 
         `schema` should be an object of whoosh.fields.Schema.
         """
-        if not schema:
+        if not self.schema:
             return
 
         if not os.path.exists(self.search_index_dir):
