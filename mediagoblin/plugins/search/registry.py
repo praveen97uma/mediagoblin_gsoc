@@ -7,7 +7,7 @@ class IndexRegistry(object):
         """
         Registers an index object.
         """
-        identifier = search_index_obj.__tablename__
+        identifier = search_index_obj.identifier
         IndexRegistry._registry[identifier] = search_index_obj
     
     @staticmethod
