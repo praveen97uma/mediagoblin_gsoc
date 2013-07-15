@@ -35,3 +35,33 @@ class IndexRegistry(object):
         """
         identifier = db_object.__tablename__
         return IndexRegistry.get(identifier, not_found)
+
+
+class ListenerRegistry(object):
+    _registry = {}
+
+    @staticmethod
+    def register(listener_obj):
+        """
+        Registers a search.listeners.ORMEventsListener object.
+        """
+        identifier = listener_obj.model.__tablename__
+        ListenerRegistry._registry[identifier] = listener_obj
+    
+    @staticmethod
+    def indices():
+        """
+        Return all the listener objects registered.
+        """
+        return ListenerRegistry._registry
+
+    @staticmethod
+    def get(identifier, not_found=None):
+        """
+        Return an ORMEventsListener object identified by `identifier`.
+
+        Returns `not_found` if the listener object was not found.
+        in the regstered list of listeners.
+        """
+        listener = ListenerRegistry._registry.get(identifier, not_found)
+        return listener
