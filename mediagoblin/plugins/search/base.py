@@ -126,3 +126,16 @@ class SearchIndex(object):
         writer.update_document(**document)
         writer.commit()
 
+    def add_document_from_model_obj(self, model_obj):
+        document = {}
+        for name in self.field_names:
+            try:
+                attr = getattr(model_obj, name)
+                document[name] = attr
+            except AttributeError:
+                _log.info("Attribute %s not found in %s"%(
+                    name, model_obj.__name__))
+        _log.info("Adding document ", document)
+        
+        self.add_document(**document)
+
