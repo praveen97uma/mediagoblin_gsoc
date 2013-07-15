@@ -1,37 +1,124 @@
+import logging
+import os
 
-class IndexRegistry(object):
-    _registry = {}
+from mediagoblin.tools import pluginapi
+from mediagoblin.plugins.search.base import IndexRegistry
+from mediagoblin.plugins.search.exceptions import IndexDoesNotExistsError
+from mediagoblin.plugins.search.schemas import MediaEntryIndexSchema
 
-    @staticmethod
-    def register(search_index_obj):
-        """
-        Registers an index object.
-        """
-        identifier = search_index_obj.__tablename__
-        IndexRegistry._registry[identifier] = search_index_obj
+import whoosh
+
+from whoosh.filedb.multiproc import MultiSegmentWriter
+
+config = pluginapi.get_config('mediagoblin.plugins.search')
+_log = logging.getLogger(__name__)
+
+
+class SearchIndex(object):
+    """
+    Represents a search index. 
+
+    This class encapsulates various methods of Whoosh API
+    for creating, modifying, updating and searching in a search
+    index.
+    """
     
-    @staticmethod
-    def indices():
-        """
-        Return all the index objects registered.
-        """
-        return IndexRegistry._registry
+    def __init__(self, model, schema, search_index_dir=None, use_multiprocessing=None):
+        self.schema = schema
+        self.field_names = self.schema.field_names
 
-    @staticmethod
-    def get(identifier, not_found=None):
-        """
-        Return an index identified bu the `identifier`.
+        self.search_index = None
+        self.search_index_name = self.__class__.__name__.lower()
+        
+        self.search_index_dir = search_index_dir
+        if not self.search_index_dir:
+            self.search_index_dir = config['search_index_dir']
+        
+        self.use_multiprocessing = use_multiprocessing 
+        if not self.use_multiprocessing:
+            self.use_multiprocessing = config['use_multiprocessing']
+    
+        self.create_index()
 
-        Returns `not_found` if the index object was not found.
-        in the regstered indices.
+    def _index_exists(self):
         """
-        index = IndexRegistry._registry.get(identifier, not_found)
-        return index
+        Returns whether a valid index exists in self.search_index_dir.
+        
+        If self.search_index is None, it implies that no index has been
+        created yet. In this case, and IndexDoesNotExistsError exception
+        is raised.
+        """
+        if not self.search_index:
+            raise IndexDoesNotExistsError(
+                self.search_index_dir, self.search_index_name)
+        
+        if self.search_index.exists_in(
+            self.search_index_dir, indexname=self.search_index_name):
+            return True
 
-    @staticmethod
-    def get_index_for_object(db_object, not_found=None):
+        return False
+    
+    def _check_index_is_valid(self):
+        self._index_exists()   
+
+
+    def _get_writer(self):
+        writer = None
+        if self.use_multiprocessing:
+            writer = MultiSegmentWriter(self.search_index)
+        else:
+            writer = self.search_index.writer()
+        
+        return writer
+
+
+    def create_index(self):
         """
-        Returns the index object for the given db model object.
+        Creates an index from the supplied `schema`.
+
+        `schema` should be an object of whoosh.fields.Schema.
         """
-        identifier = db_object.__tablename__
-        return IndexRegistry.get(identifier, not_found)
+        if not schema:
+            return
+
+        if not os.path.exists(self.search_index_dir):
+            os.mkdir(self.search_index_dir)
+
+        self.search_index = whoosh.index.create_in(self.search_index_dir,
+                indexname=self.search_index_name, schema=self.schema)
+        
+
+    def add_document(self, **document):
+        """
+        Adds a document to the index represented by this class.
+        """
+        self._check_index_is_valid()
+        writer = self._get_writer()
+        writer.add_document(**document)
+        writer.commit()
+
+    def add_documents(self, documents):
+        """
+        Adds multiple documents to the index.
+
+        documents should be an iterable object composed of dicts.
+        """
+        self._check_index_is_valid()
+        writer = self._get_writer()
+        for document in documents:
+            writer.add_document(**document)
+
+        writer.commit()
+
+    def update_document(self, document={}):
+        """
+        Updates an existing document in the index.
+
+        The index must contain a field which is defined as unique and is
+        indexed.
+        """
+        self._check_index_is_valid()
+        writer = self._get_writer()
+        writer.update_document(**document)
+        writer.commit()
+
