@@ -58,8 +58,8 @@ def setup_plugin():
 
     routes = [
         ('mediagoblin.plugins.search.search',
-            '/search',
-            'mediagoblin.plugins.search.views:search'),
+         '/search/',
+         'mediagoblin.plugins.search.views:search'),
     ]
 
     pluginapi.register_routes(routes)
