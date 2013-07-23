@@ -102,12 +102,15 @@ class SearchIndex(object):
         
         if whoosh.index.exists_in(
             self.search_index_dir, indexname=self.search_index_name):
+            self.search_index = whoosh.index.open_dir(self.search_index_dir,
+                indexname=self.search_index_name)
+  
             _log.info("Index %s already exists"%(self.search_index_name))
             return
 
         self.search_index = whoosh.index.create_in(self.search_index_dir,
                 indexname=self.search_index_name, schema=self.schema)
-       
+        _log.info("Index created with name " + self.search_index_name) 
 
     def add_document(self, **document):
         """
@@ -166,18 +169,21 @@ class SearchIndex(object):
     def add_document_from_model_obj(self, model_obj):
         document = self._prepare_document_from_model_obj(model_obj)
         self.add_document(**document)
-        _log.info("Added document %s"%document['title'])
+        _log.info("Added %s with id %s"%(model_obj.__class__.__name__, 
+                                         str(model_obj.id)))
     
     def update_document_from_model_obj(self, model_obj):
         document = self._prepare_document_from_model_obj(model_obj)
         self.update_document(**document)
-        _log.info("Updated document %s"%(document['title']))
+        _log.info("Updated %s with id %s"%(model_obj.__class__.__name__, 
+                                         str(model_obj.id)))
 
     def delete_document_from_model_obj(self, model_obj):
         id_stored = unicode(model_obj.id)
         self._open_search_index()
         self.search_index.delete_by_term('id_stored', id_stored)
-        _log.info("Deleted document %s"%(model_obj.title))
+        _log.info("Deleted %s with id %s"%(model_obj.__class__.__name__, 
+                                         str(model_obj.id)))
 
     def _process_query(self, query):
         query = unicode(query)
@@ -186,19 +192,7 @@ class SearchIndex(object):
         return query
 
     def _interpret_results(self, results, request):
-        _log.info(type(results))
-        all_results = []
-        for result in results:
-            _log.info(result)
-            print result.fields()
-            obj_id = result['id_stored']
-            obj = self.model.query.get(obj_id)
-            all_results.append({
-                'slug': obj.slug,
-                'url': obj.url_for_self(request.urlgen),
-            })
-        return all_results
-                
+         raise NotImplementedError              
 
     def search(self, query, request):
         self._open_search_index()
