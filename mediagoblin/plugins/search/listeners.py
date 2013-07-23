@@ -33,7 +33,8 @@ class ORMEventsListener(object):
         index.add_document_from_model_obj(target)
     
     def update_event_handler(self, mapper, connection, target):
-        pass
+        index = self.index_registry.get_index_for_object(target)
+        index.update_document_from_model_obj(target)
 
     def delete_event_handler(self, mapper, connection, target):
         pass
