@@ -46,6 +46,11 @@ class SearchIndex(object):
     
         self.create_index()
 
+    def _open_search_index(self):
+         self.search_index = whoosh.index.open_dir(self.search_index_dir,
+                indexname=self.search_index_name)
+        
+
     def _index_exists(self):
         """
         Returns whether a valid index exists in self.search_index_dir.
@@ -69,6 +74,7 @@ class SearchIndex(object):
 
 
     def _get_writer(self):
+        self._open_search_index()
         writer = None
         if self.use_multiprocessing:
             writer = MultiSegmentWriter(self.search_index)
@@ -88,13 +94,11 @@ class SearchIndex(object):
             return
 
         if not os.path.exists(self.search_index_dir):
-            os.mkdir(self.search_index_dir)
+            os.mkdirs(self.search_index_dir)
 
         self.search_index = whoosh.index.create_in(self.search_index_dir,
                 indexname=self.search_index_name, schema=self.schema)
-        self.search_index = whoosh.index.open_dir(self.search_index_dir,
-                indexname=self.search_index_name)
-        
+       
 
     def add_document(self, **document):
         """
@@ -146,6 +150,7 @@ class SearchIndex(object):
         self.add_document(**document)
 
     def search(self, query):
+        self._open_search_index()
         query = unicode(query)
         with self.search_index.searcher() as searcher:
             query = MultifieldParser(self.field_names,

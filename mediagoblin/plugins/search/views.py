@@ -47,4 +47,4 @@ def search(request):
         return render_to_response(request, 'mediagoblin/search/search.html',
                 context)
 
-    render_to_response(request, 'mediagoblin/search/search.html', context)
+    return render_to_response(request, 'mediagoblin/search/search.html', context)
