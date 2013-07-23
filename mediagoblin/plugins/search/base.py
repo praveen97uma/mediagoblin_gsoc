@@ -131,7 +131,7 @@ class SearchIndex(object):
 
         writer.commit()
 
-    def update_document(self, document={}):
+    def update_document(self, **document):
         """
         Updates an existing document in the index.
 
@@ -142,8 +142,8 @@ class SearchIndex(object):
         writer = self._get_writer()
         writer.update_document(**document)
         writer.commit()
-
-    def add_document_from_model_obj(self, model_obj):
+    
+    def _prepare_document_from_model_obj(self, model_obj):
         document = {}
         for name in self.field_names:
             try:
@@ -160,10 +160,19 @@ class SearchIndex(object):
             except AttributeError:
                 _log.info("Attribute %s not found in %s"%(
                     name, model_obj.__class__.__name__))
-        _log.info("Adding document %s"%document['title'])
-        
+        return document
+
+
+    def add_document_from_model_obj(self, model_obj):
+        document = self._prepare_document_from_model_obj(model_obj)
         self.add_document(**document)
+        _log.info("Added document %s"%document['title'])
     
+    def update_document_from_model_obj(self, model_obj):
+        document = self._prepare_document_from_model_obj(model_obj)
+        self.update_document(**document)
+        _log.info("Updated document %s"%(document['title']))
+
     def _process_query(self, query):
         query = unicode(query)
         query = MultifieldParser(self.field_names,
