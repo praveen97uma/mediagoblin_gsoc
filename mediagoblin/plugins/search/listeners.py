@@ -37,7 +37,8 @@ class ORMEventsListener(object):
         index.update_document_from_model_obj(target)
 
     def delete_event_handler(self, mapper, connection, target):
-        pass
+        index = self.index_registry.get_index_for_object(target)
+        index.delete_document_from_model_obj(target)
     
     def activate_listeners(self):
         self.listeners = [

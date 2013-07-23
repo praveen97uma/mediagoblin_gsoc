@@ -173,6 +173,12 @@ class SearchIndex(object):
         self.update_document(**document)
         _log.info("Updated document %s"%(document['title']))
 
+    def delete_document_from_model_obj(self, model_obj):
+        id_stored = unicode(model_obj.id)
+        self._open_search_index()
+        self.search_index.delete_by_term('id_stored', id_stored)
+        _log.info("Deleted document %s"%(model_obj.title))
+
     def _process_query(self, query):
         query = unicode(query)
         query = MultifieldParser(self.field_names,
