@@ -51,6 +51,10 @@ class SearchIndex(object):
                 indexname=self.search_index_name)
         
 
+    def _filter_field_names(self, names):
+        filtered_names = [name for name in names if not name.endswith('_stored')]
+        return filtered_names
+
     def _index_exists(self):
         """
         Returns whether a valid index exists in self.search_index_dir.
@@ -94,7 +98,12 @@ class SearchIndex(object):
             return
 
         if not os.path.exists(self.search_index_dir):
-            os.mkdirs(self.search_index_dir)
+            os.makedirs(self.search_index_dir)
+        
+        if whoosh.index.exists_in(
+            self.search_index_dir, indexname=self.search_index_name):
+            _log.info("Index %s already exists"%(self.search_index_name))
+            return
 
         self.search_index = whoosh.index.create_in(self.search_index_dir,
                 indexname=self.search_index_name, schema=self.schema)
@@ -138,7 +147,13 @@ class SearchIndex(object):
         document = {}
         for name in self.field_names:
             try:
-                attr = getattr(model_obj, name)
+                attr = None
+                if name.endswith('_stored'):
+                    parent_name = name.replace('_stored', '')
+                    attr = getattr(model_obj, parent_name)
+                else:
+                    attr = getattr(model_obj, name)
+                
                 if isinstance(attr, int):
                     attr = unicode(attr)
                 document[name] = attr
@@ -148,12 +163,34 @@ class SearchIndex(object):
         _log.info("Adding document %s"%document['title'])
         
         self.add_document(**document)
-
-    def search(self, query):
-        self._open_search_index()
+    
+    def _process_query(self, query):
         query = unicode(query)
+        query = MultifieldParser(self.field_names,
+                self.schema).parse(query)
+        return query
+
+    def _interpret_results(self, results, request):
+        _log.info(type(results))
+        all_results = []
+        for result in results:
+            _log.info(result)
+            print result.fields()
+            obj_id = result['id_stored']
+            obj = self.model.query.get(obj_id)
+            all_results.append({
+                'slug': obj.slug,
+                'url': obj.url_for_self(request.urlgen),
+            })
+        return all_results
+                
+
+    def search(self, query, request):
+        self._open_search_index()
         with self.search_index.searcher() as searcher:
-            query = MultifieldParser(self.field_names,
-                self.search_index.schema).parse(query)
+            query = self._process_query(query)
             results = searcher.search(query)
-            return results
+            all_results = self._interpret_results(results, request)
+            return all_results
+
+
