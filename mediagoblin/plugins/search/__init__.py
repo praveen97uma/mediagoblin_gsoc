@@ -19,9 +19,9 @@ import logging
 
 from mediagoblin.tools import pluginapi
 
-from mediagoblin.db.models import MediaEntry
+from mediagoblin.db.models import (MediaEntry, MediaTag)
 from mediagoblin.plugins.search import schemas
-from mediagoblin.plugins.search.base import SearchIndex
+from mediagoblin.plugins.search import indices
 from mediagoblin.plugins.search import registry
 from mediagoblin.plugins.search import listeners
 
@@ -31,7 +31,7 @@ PLUGIN_DIR = os.path.dirname(__file__)
 
 
 def register_indices():
-    media_entry_search_index = SearchIndex(
+    media_entry_search_index = indices.MediaEntrySearchIndex(
         model = MediaEntry,
         schema = schemas.MediaEntryIndexSchema,
     )
@@ -40,7 +40,15 @@ def register_indices():
     _log.info("Registered %(index_name)s index for %(model_name)s"%({
         'index_name': media_entry_search_index.__class__.__name__,
         'model_name': MediaEntry.__name__}))
-
+    
+    media_tag_search_index = indices.MediaTagSearchIndex(
+        model = MediaTag,
+        schema = schemas.MediaTagIndexSchema,
+    )
+    registry.IndexRegistry.register(media_tag_search_index)
+    _log.info("Registered %(index_name)s index for %(model_name)s"%({
+        'index_name': media_tag_search_index.__class__.__name__,
+        'model_name': MediaTag.__name__}))
 
 def activate_orm_events_listeners():
     indices = registry.IndexRegistry.indices()
