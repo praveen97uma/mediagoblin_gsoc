@@ -26,3 +26,13 @@ class MediaEntryIndexSchema(SchemaClass):
     media_type = TEXT
     license = TEXT
 
+class MediaTagIndexSchema(SchemaClass):
+    """
+    Represents the schema of the search index corresponding to
+    db.models.MediaTag objects.
+    """
+    id = ID(unique=True)
+
+    id_stored = ID(stored=True)
+    
+    name = TEXT
