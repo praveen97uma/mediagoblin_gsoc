@@ -13,15 +13,10 @@ def search_in_indices(request, query):
     indices = registry.IndexRegistry.indices()
     all_results = []
     for index in indices.itervalues():
-        results = index.search(query)
+        results = index.search(query, request)
         if len(results)>0:
-            for result in results:
-                obj_id = result['id']
-                obj = index.model.query.get(obj_id)
-                all_results.append({
-                    'slug': obj.slug,
-                    'url': obj.url_for_self(request.urlgen),
-                })
+            all_results.extend(results)
+    
     return all_results
 
 def search(request):
