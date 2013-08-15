@@ -45,6 +45,10 @@ SUBCOMMAND_MAP = {
         'setup': 'mediagoblin.gmg_commands.assetlink:assetlink_parser_setup',
         'func': 'mediagoblin.gmg_commands.assetlink:assetlink',
         'help': 'Link assets for themes and plugins for static serving'},
+    'delete_all_indices': {
+        'setup': 'mediagoblin.gmg_commands.search:search_parser_setup',
+        'func': 'mediagoblin.gmg_commands.search:delete_all_indices',
+        'help': 'Delete all existing indices'},
     # 'theme': {
     #     'setup': 'mediagoblin.gmg_commands.theme:theme_parser_setup',
     #     'func': 'mediagoblin.gmg_commands.theme:theme',
