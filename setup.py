@@ -52,7 +52,7 @@ setup(
         'kombu==2.1.7',
         'jinja2',
         'sphinx',
-        'Babel',
+        'Babel<1.0',
         'argparse',
         'webtest<2',
         'ConfigObj',
@@ -63,6 +63,7 @@ setup(
         'itsdangerous',
         'pytz',
         'six',
+        'oauthlib',
         ## This is optional!
         # 'translitcodec',
         ## For now we're expecting that users will install this from
