@@ -47,11 +47,18 @@ class SearchIndex(object):
         self.create_index()
 
     def _open_search_index(self):
-         self.search_index = whoosh.index.open_dir(self.search_index_dir,
+        """
+        Open the associated index this class is associated with for
+        reading/writing.
+        """
+        self.search_index = whoosh.index.open_dir(self.search_index_dir,
                 indexname=self.search_index_name)
         
 
     def _filter_field_names(self, names):
+        """
+        Removes field names which end with '_stored'. 
+        """
         filtered_names = [name for name in names if not name.endswith('_stored')]
         return filtered_names
 
@@ -78,6 +85,12 @@ class SearchIndex(object):
 
 
     def _get_writer(self):
+        """
+        Returns a valid writer object for modiying the index.
+
+        Its necessary to open the index every time a modification has
+        to be made to the index.
+        """
         self._open_search_index()
         writer = None
         if self.use_multiprocessing:
@@ -146,60 +159,92 @@ class SearchIndex(object):
         writer.update_document(**document)
         writer.commit()
     
-    def _prepare_document_from_model_obj(self, model_obj):
+    def _prepare_document_from_obj(self, obj):
+        """
+        Creates a dict of field names and corresponding values
+        from the object received.
+
+        The values present in the dict prepared is actually stored
+        in the index. For the stored fields, the value is taken from
+        the corresponding non-stored fields. 
+        """
         document = {}
         for name in self.field_names:
             try:
                 attr = None
                 if name.endswith('_stored'):
                     parent_name = name.replace('_stored', '')
-                    attr = getattr(model_obj, parent_name)
+                    attr = getattr(obj, parent_name)
                 else:
-                    attr = getattr(model_obj, name)
+                    attr = getattr(obj, name)
                 
                 if isinstance(attr, int):
                     attr = unicode(attr)
                 document[name] = attr
             except AttributeError:
                 _log.info("Attribute %s not found in %s"%(
-                    name, model_obj.__class__.__name__))
+                    name, obj.__class__.__name__))
         return document
 
 
-    def add_document_from_model_obj(self, model_obj):
-        document = self._prepare_document_from_model_obj(model_obj)
+    def add_document_from_obj(self, obj):
+        """
+        Adds a document to the index created from the given obj.
+        """
+        document = self._prepare_document_from_obj(obj)
         self.add_document(**document)
-        _log.info("Added %s with id %s"%(model_obj.__class__.__name__, 
-                                         str(model_obj.id)))
+        _log.info("Added %s with id %s"%(obj.__class__.__name__, 
+                                         str(obj.id)))
     
-    def update_document_from_model_obj(self, model_obj):
-        document = self._prepare_document_from_model_obj(model_obj)
+    def update_document_from_obj(self, obj):
+        """
+        Updates an existing index entry with the data from the given obj.
+        """
+        document = self._prepare_document_from_obj(obj)
         self.update_document(**document)
-        _log.info("Updated %s with id %s"%(model_obj.__class__.__name__, 
-                                         str(model_obj.id)))
+        _log.info("Updated %s with id %s"%(obj.__class__.__name__, 
+                                         str(obj.id)))
 
-    def delete_document_from_model_obj(self, model_obj):
-        id_stored = unicode(model_obj.id)
+    def delete_document_from_obj(self, obj):
+        """
+        Deletes an index entry corresponding to the given object.
+        """
+        id_stored = unicode(obj.id)
         self._open_search_index()
         self.search_index.delete_by_term('id_stored', id_stored)
-        _log.info("Deleted %s with id %s"%(model_obj.__class__.__name__, 
-                                         str(model_obj.id)))
+        _log.info("Deleted %s with id %s"%(obj.__class__.__name__, 
+                                         str(obj.id)))
 
     def _process_query(self, query):
+        """
+        Returns a whoosh query object for the given user query string.
+        """
         query = unicode(query)
         query = MultifieldParser(self.field_names,
                 self.schema).parse(query)
         return query
 
     def _interpret_results(self, results, request):
-         raise NotImplementedError              
+        """
+        Returns the results in a specific structure.
+
+        This method must be overloaded by the derived classes
+        as the way of interpreting the results is different for
+        different storage objects.
+
+        `request` is passed from the search view. It is needed
+        for generating the data for the search results.
+        """
+        raise NotImplementedError              
 
     def search(self, query, request):
+        """
+        Performs a search against the index for the given user query.
+        """
         self._open_search_index()
         with self.search_index.searcher() as searcher:
             query = self._process_query(query)
             results = searcher.search(query)
             all_results = self._interpret_results(results, request)
             return all_results
-
 
