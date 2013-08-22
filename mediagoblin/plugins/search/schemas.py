@@ -26,6 +26,8 @@ class MediaEntryIndexSchema(SchemaClass):
     media_type = TEXT
     license = TEXT
 
+    search_result = TEXT(stored=True)
+
 class MediaTagIndexSchema(SchemaClass):
     """
     Represents the schema of the search index corresponding to
@@ -36,3 +38,5 @@ class MediaTagIndexSchema(SchemaClass):
     id_stored = ID(stored=True)
     
     name = TEXT
+
+    search_result = TEXT(stored=True)
