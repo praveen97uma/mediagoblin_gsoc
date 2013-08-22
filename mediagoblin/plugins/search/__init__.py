@@ -71,8 +71,15 @@ def setup_plugin():
     ]
 
     pluginapi.register_routes(routes)
-    register_indices()
-    activate_orm_events_listeners()
+    try:
+        register_indices()
+    except Exception as e:
+        _log.debug("Failed to register search indices: %s"%(e))
+
+    try:
+        activate_orm_events_listeners()
+    except Exception as e:
+        _log.debug("Failed to start event listeners: %s"%(e))
     #event.listen(MediaEntry, 'after_insert', mediaentry_add_listener)
     #event.listen(MediaEntry, 'before_insert', mediaentry_before_add_listener)
     #_log.info("Registered listening event") 
