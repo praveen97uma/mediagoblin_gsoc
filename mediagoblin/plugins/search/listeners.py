@@ -40,17 +40,17 @@ class ORMEventsListener(object):
     def insert_event_handler(self, mapper, connection, target):
         index = self.index_registry.get_index_for_object(target)
         try:
-            index.add_document_from_model_obj(target)
+            index.add_document_from_obj(target)
         except Exception as e:
             _log.debug("Failed to add object to index: %s"%(e))
 
     def update_event_handler(self, mapper, connection, target):
         index = self.index_registry.get_index_for_object(target)
-        index.update_document_from_model_obj(target)
+        index.update_document_from_obj(target)
 
     def delete_event_handler(self, mapper, connection, target):
         index = self.index_registry.get_index_for_object(target)
-        index.delete_document_from_model_obj(target)
+        index.delete_document_from_obj(target)
     
     def activate_listeners(self):
         try:
