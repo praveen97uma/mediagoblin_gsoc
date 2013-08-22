@@ -174,13 +174,15 @@ class SearchIndex(object):
                 attr = None
                 if name.endswith('_stored'):
                     parent_name = name.replace('_stored', '')
-                    attr = getattr(obj, parent_name)
+                    attr = getattr(obj, parent_name, None)
                 else:
-                    attr = getattr(obj, name)
+                    attr = getattr(obj, name, None)
                 
                 if isinstance(attr, int):
                     attr = unicode(attr)
-                document[name] = attr
+
+                if attr:
+                    document[name] = attr
             except AttributeError:
                 _log.info("Attribute %s not found in %s"%(
                     name, obj.__class__.__name__))
