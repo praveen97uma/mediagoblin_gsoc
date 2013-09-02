@@ -13,10 +13,11 @@ def search_in_indices(request, query):
     indices = registry.IndexRegistry.indices()
     all_results = []
     for index in indices.itervalues():
-        results = index.search(query, request)
-        if len(results)>0:
-            all_results.extend(results)
-    
+        search_results = index.search(query, request)
+        if len(search_results['results'])>0:
+            all_results.append(search_results)
+    _log.info("Total results found")
+    _log.info(all_results)
     return all_results
 
 def search(request):
@@ -32,9 +33,9 @@ def search(request):
 
     if request.method == 'POST' and form.validate():
         query = form.query.data
-        all_results = search_in_indices(request, query)
+        result_categories = search_in_indices(request, query)
         context.update({
-            'results': all_results,
+            'result_categories': result_categories,
             'results_found': True,
             'query': query,
         })
