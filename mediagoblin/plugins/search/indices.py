@@ -24,10 +24,11 @@ class MediaEntrySearchIndex(SearchIndex):
             'css_id': self.css_id,
             'results': [],
         }
+
+        obj_ids = set([result['id_stored'] for result in results])
+    
         search_results = []
-        for result in results:
-            _log.info(result)
-            obj_id = result['id_stored']
+        for obj_id in obj_ids:
             obj = self.model.query.get(obj_id)
             search_results.append({
                 'slug': obj.slug,
@@ -35,8 +36,10 @@ class MediaEntrySearchIndex(SearchIndex):
             })
         
         all_results['results'] = search_results
+
         _log.info("Found results ")
         _log.info(all_results)
+        
         return all_results
 
 
@@ -59,9 +62,9 @@ class MediaTagSearchIndex(SearchIndex):
             'css_id': self.css_id,
             'results': [],
         }
+        obj_ids = set([result['id_stored'] for result in results])
         search_results = []
-        for result in results:
-            obj_id = result['id_stored']
+        for obj_id in obj_ids:
             obj = self.model.query.get(obj_id)
             media_entry_obj = MediaEntry.query.get(obj.media_entry)
             search_results.append({
