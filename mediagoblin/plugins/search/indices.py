@@ -15,7 +15,7 @@ class MediaEntrySearchIndex(SearchIndex):
             search_index_dir=search_index_dir,
             use_multiprocessing=use_multiprocessing)
         self.verbose_name = "Media Entries"
-        self.css_id = self.identifier
+        self.css_id = "media_entries"
 
     def _interpret_results(self, results, request_obj=None):
         _log.info("Searched in Media Entries")
@@ -52,7 +52,7 @@ class MediaTagSearchIndex(SearchIndex):
             use_multiprocessing=use_multiprocessing)
         
         self.verbose_name = "Media Tags"
-        self.css_id = self.identifier
+        self.css_id = "media_tags"
 
     def _interpret_results(self, results, request_obj):
         _log.info("Searched in Media Tags")

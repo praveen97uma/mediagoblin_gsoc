@@ -30,11 +30,11 @@
             <div id="tabs">
                 <ul>
                     {% for category in result_categories %}
-                        <li><a href="#{{ category['css_id'] }}"> {{ category['verbose_name'] }} </li>
+                    <li><a href="#{{ category['css_id'] }}"> {{ category['verbose_name'] }} </a></li>
                     {% endfor %}
                 </ul>
                 {% for category in result_categories %}
-                    <div id="#{{ category['css_id'] }}">
+                    <div id="{{ category['css_id'] }}">
                         {% for result in category['results'] %}
                             <li><a href = "{{ result['url'] }} "> {{ result['slug'] }}</a></li>
                         {% endfor %}
