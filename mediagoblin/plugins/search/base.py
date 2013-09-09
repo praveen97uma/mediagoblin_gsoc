@@ -22,14 +22,17 @@ class SearchIndex(object):
     index.
     """
     
-    def __init__(self, model, schema, search_index_dir=None, use_multiprocessing=None):
+    def __init__(self, model, schema, identifier=None, search_index_dir=None, use_multiprocessing=None):
         
         self.config = pluginapi.get_config('mediagoblin.plugins.search')
         self.schema = schema()
         self.field_names = self.schema.names()
         
         self.model = model
-        self.identifier = self.model.__tablename__
+        if identifier:
+            self.identifier = identifier
+        else:
+            self.identifier = self.model.__tablename__
 
         self.search_index = None
         self.search_index_name = ''.join([
@@ -239,14 +242,14 @@ class SearchIndex(object):
         """
         raise NotImplementedError              
 
-    def search(self, query, request):
+    def search(self, query, request, page=1):
         """
         Performs a search against the index for the given user query.
         """
         self._open_search_index()
         with self.search_index.searcher() as searcher:
             query = self._process_query(query)
-            results = searcher.search(query)
+            results = searcher.search_page(query, page, pagelen=15)
             all_results = self._interpret_results(results, request)
             return all_results
 
