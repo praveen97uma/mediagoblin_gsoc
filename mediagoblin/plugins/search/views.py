@@ -21,7 +21,7 @@ def search_in_indices(request, query, search_criteria={}):
 
     indices = registry.IndexRegistry.indices(categories=categories)
     
-    for index in indices.itervalues():
+    for index in indices:
         search_results = index.search(query, request)
         if len(search_results['results'])>0:
             all_results.append(search_results)
