@@ -16,32 +16,33 @@
 
 
 {% block mediagoblin_content %}    
-    <form action="{{ request.urlgen('mediagoblin.plugins.search.search') }}" method="POST">
+    <form action="{{ request.urlgen('mediagoblin.plugins.search.search') }}" method="GET">
         {{ wtforms_util.render_divs(form) }}
         <div class="form_submit_buttons">
             <input type="submit" value="Go" class="button_form" />
             {{ csrf_token }}
         </div>
     </form>
-    {% if results_found %}
-        {% if result_categories %}
-            <h2> Results found for query: {{ query }} </h2>
 
+    {% if results_found %}
+            <h2> Results found for query: {{ query }} </h2>
+            
             <div id="tabs">
                 <ul>
-                    {% for category in result_categories %}
-                    <li><a href="#{{ category['css_id'] }}"> {{ category['verbose_name'] }} </a></li>
+                    {% for result_category in results %}
+                    <li><a href="#{{ result_category['css_id'] }}"> {{ result_category['verbose_name'] }} </a></li>
                     {% endfor %}
                 </ul>
-                {% for category in result_categories %}
-                    <div id="{{ category['css_id'] }}">
-                        {% for result in category['results'] %}
+                {% for result_category in results %}
+                    <div id="{{ result_category['css_id'] }}">
+                        {% for result in result_category['results'] %}
                             <li><a href = "{{ result['url'] }} "> {{ result['slug'] }}</a></li>
                         {% endfor %}
                     </div>
                 {% endfor %}
             </div>
         {% else %}
+        {% if query %}
             No results found for query: {{ query }}
         {% endif %}
     {% endif %}
