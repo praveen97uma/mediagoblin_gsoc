@@ -1,4 +1,4 @@
-
+from mediagoblin.plugins.search import constants as search_constants
 class IndexRegistry(object):
     _registry = {}
 
@@ -11,11 +11,16 @@ class IndexRegistry(object):
         IndexRegistry._registry[identifier] = search_index_obj
     
     @staticmethod
-    def indices():
+    def indices(categories=None):
         """
         Return all the index objects registered.
         """
-        return IndexRegistry._registry
+        if categories:
+            indices = [IndexRegistry.get(identifier) for identifier in
+                categories]
+            return indices
+        else:
+            return IndexRegistry._registry
 
     @staticmethod
     def get(identifier, not_found=None):
@@ -33,7 +38,8 @@ class IndexRegistry(object):
         """
         Returns the index object for the given db model object.
         """
-        identifier = db_object.__tablename__
+        tablename = db_object.__tablename__
+        identifier = search_constants.ModelIndexMapping.get(tablename, None)
         return IndexRegistry.get(identifier, not_found)
 
 
