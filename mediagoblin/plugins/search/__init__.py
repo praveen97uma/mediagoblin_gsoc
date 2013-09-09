@@ -38,7 +38,7 @@ def register_indices():
 
     registry.IndexRegistry.register(media_entry_search_index)
     _log.info("Registered %(index_name)s index for %(model_name)s"%({
-        'index_name': media_entry_search_index.__class__.__name__,
+        'index_name': media_entry_search_index.identifier,
         'model_name': MediaEntry.__name__}))
     
     media_tag_search_index = indices.MediaTagSearchIndex(
@@ -47,7 +47,7 @@ def register_indices():
     )
     registry.IndexRegistry.register(media_tag_search_index)
     _log.info("Registered %(index_name)s index for %(model_name)s"%({
-        'index_name': media_tag_search_index.__class__.__name__,
+        'index_name': media_tag_search_index.identifier,
         'model_name': MediaTag.__name__}))
 
 def activate_orm_events_listeners():
@@ -67,7 +67,7 @@ def setup_plugin():
     routes = [
         ('mediagoblin.plugins.search.search',
          '/search/',
-         'mediagoblin.plugins.search.views:search'),
+         'mediagoblin.plugins.search.views:search_query'),
     ]
 
     pluginapi.register_routes(routes)
