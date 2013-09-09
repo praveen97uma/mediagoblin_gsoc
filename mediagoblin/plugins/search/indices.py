@@ -1,6 +1,7 @@
 import logging
 
 from mediagoblin.plugins.search.base import SearchIndex
+from mediagoblin.plugins.search import constants as search_constants
 
 from mediagoblin.db.models import MediaEntry
 
@@ -11,7 +12,8 @@ class MediaEntrySearchIndex(SearchIndex):
     def __init__(self, model, schema, search_index_dir=None,
         use_multiprocessing=None):
         super(MediaEntrySearchIndex, self).__init__(
-            model=model, schema=schema, 
+            model=model, schema=schema,
+            identifier=search_constants.MEDIA_ENTRIES,
             search_index_dir=search_index_dir,
             use_multiprocessing=use_multiprocessing)
         self.verbose_name = "Media Entries"
@@ -48,6 +50,7 @@ class MediaTagSearchIndex(SearchIndex):
         use_multiprocessing=None):
         super(MediaTagSearchIndex, self).__init__(
             model=model, schema=schema,
+            identifier=search_constants.MEDIA_TAGS,
             search_index_dir=search_index_dir,
             use_multiprocessing=use_multiprocessing)
         
