@@ -20,7 +20,7 @@ class IndexRegistry(object):
                 categories]
             return indices
         else:
-            return IndexRegistry._registry
+            return IndexRegistry._registry.itervalues()
 
     @staticmethod
     def get(identifier, not_found=None):
