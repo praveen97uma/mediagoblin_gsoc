@@ -52,7 +52,7 @@ def register_indices():
 
 def activate_orm_events_listeners():
     indices = registry.IndexRegistry.indices()
-    for index_obj in indices.itervalues():
+    for index_obj in indices:
         listener = listeners.ORMEventsListener(index_obj.model)
         listener.activate_listeners()
         registry.ListenerRegistry.register(listener)

@@ -21,8 +21,10 @@ def search_in_indices(request, query, search_criteria={}):
 
     indices = registry.IndexRegistry.indices(categories=categories)
     
+    page = search_criteria.get('page', 1)
     for index in indices:
-        search_results = index.search(query, request)
+        _log.info("Page: %s"%(str(page)))
+        search_results = index.search(query, request, page=page)
         if len(search_results['results'])>0:
             all_results.append(search_results)
     
@@ -50,9 +52,11 @@ def search_query(request):
     
     search_criteria = {
         'categories': request.GET.get('categories', None),
+        'page': request.GET.get('page', 1),
     }
 
-    (results_found, results) = search_in_indices(request, query, search_criteria)
+    (results_found, results) = search_in_indices(request, query,
+            search_criteria=search_criteria)
     context.update({
         'results_found': results_found,
         'results': results,

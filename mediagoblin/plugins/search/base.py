@@ -7,7 +7,6 @@ from mediagoblin.plugins.search.schemas import MediaEntryIndexSchema
 
 import whoosh
 
-from whoosh.filedb.multiproc import MultiSegmentWriter
 from whoosh.qparser import MultifieldParser
 
 _log = logging.getLogger(__name__)
@@ -97,7 +96,8 @@ class SearchIndex(object):
         self._open_search_index()
         writer = None
         if self.use_multiprocessing:
-            writer = MultiSegmentWriter(self.search_index)
+            writer = self.search_index.writer(procs=4, multisegment=True,
+                    limitmb=128)
         else:
             writer = self.search_index.writer()
         
