@@ -48,11 +48,13 @@ class Pagination(object):
         self.cursor = cursor
         self.total_count = self.cursor.count()
         self.active_id = None
+        
+        self.curser_iter = getattr(cursor, "cursor_iter", cursor)
 
         if jump_to_id:
-            cursor = copy.copy(self.cursor)
+            cursor = copy.copy(self.cursor_iter)
 
-            for (doc, increment) in izip(cursor, count(0)):
+            for (doc, increment) in izip(cursor_iter, count(0)):
                 if doc.id == jump_to_id:
                     self.page = 1 + int(floor(increment / self.per_page))
 
