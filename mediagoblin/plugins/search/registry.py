@@ -1,4 +1,5 @@
 from mediagoblin.plugins.search import constants as search_constants
+
 class IndexRegistry(object):
     _registry = {}
 
@@ -16,6 +17,9 @@ class IndexRegistry(object):
         Return all the index objects registered.
         """
         if categories:
+            if isinstance(categories, basestring):
+                return [IndexRegistry.get(categories)]
+
             indices = [IndexRegistry.get(identifier) for identifier in
                 categories]
             return indices
