@@ -1,7 +1,11 @@
 import logging
+import json
 
 from mediagoblin.plugins.search import forms
 from mediagoblin.plugins.search import registry
+from mediagoblin.plugins.search.base import WhooshResultsCursor
+from mediagoblin.plugins.search.base import WhooshResultsPagination
+from mediagoblin.plugins.search import constants as search_constants
 
 from mediagoblin.tools.response import render_to_response, redirect
 
@@ -9,17 +13,19 @@ from mediagoblin.tools.response import render_to_response, redirect
 _log = logging.getLogger(__name__)
 
 
-def search_in_indices(request, query, search_criteria={}):
+def search_in_indices(query, search_criteria={}, request=None):
     indices = registry.IndexRegistry.indices()
     results_found = False
     all_results = []
     
     categories = search_criteria.get('categories', None)
     
-    if categories:
-        categories = categories.split(',')
-
-    indices = registry.IndexRegistry.indices(categories=categories)
+    #if categories:
+    #    categories = categories.split(',')
+    _log.info(categories)
+    indices = registry.IndexRegistry.indices(categories=[categories])
+    _log.info("second")
+    _log.info(indices) 
     
     page = search_criteria.get('page', 1)
     for index in indices:
@@ -38,6 +44,8 @@ def search_in_indices(request, query, search_criteria={}):
 
 def search_query(request):
     form = forms.SearchForm(request.form)
+    _log.info("Get dict")
+    _log.info(request.GET)
     query = request.GET.get('query')
     context = {
         'form': form,
@@ -51,12 +59,37 @@ def search_query(request):
                 context)
     
     search_criteria = {
-        'categories': request.GET.get('categories', None),
-        'page': request.GET.get('page', 1),
+        'page': int(request.GET.get('page', 1)),
     }
 
-    (results_found, results) = search_in_indices(request, query,
-            search_criteria=search_criteria)
+    results_found = False
+    results = []
+    categories = request.GET.get('categories', None)
+    _log.info("prefirst")
+    _log.info(categories)
+    if not categories:
+        categories = search_constants.ENABLED_INDICES
+    else:
+        _log.info(type(categories))
+        categories = categories.split(',')
+        
+    _log.info("first")
+    _log.info(categories)
+
+    for category in categories:
+        search_criteria.update({
+            'categories': category
+            })
+
+        (r_f, r) = search_in_indices(query, search_criteria)
+        _log.info(r)
+        whoosh_results_cursor = WhooshResultsCursor(r[0])
+        paginator = WhooshResultsPagination(search_criteria['page'],
+                whoosh_results_cursor, query, search_criteria)
+        r[0]['paginator'] = paginator
+        results.append(r[0])
+        results_found |= r_f
+
     context.update({
         'results_found': results_found,
         'results': results,
