@@ -10,4 +10,5 @@ ModelIndexMapping = {
     MediaTag.__tablename__: MEDIA_TAGS,
 }
 
+ENABLED_INDICES = ModelIndexMapping.values()
 
