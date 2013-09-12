@@ -2,6 +2,7 @@ import logging
 import os
 
 from mediagoblin.tools import pluginapi
+from mediagoblin.tools.pagination import Pagination
 from mediagoblin.plugins.search.exceptions import IndexDoesNotExistsError
 from mediagoblin.plugins.search.schemas import MediaEntryIndexSchema
 
@@ -10,6 +11,9 @@ import whoosh
 from whoosh.qparser import MultifieldParser
 
 _log = logging.getLogger(__name__)
+
+
+MAX_RESULTS_PER_PAGE = 15
 
 
 class SearchIndex(object):
@@ -253,3 +257,39 @@ class SearchIndex(object):
             all_results = self._interpret_results(results, request)
             return all_results
 
+
+class WhooshResultsPagination(Pagination):
+    """
+    Extends pagination.Pagination.
+    """
+    def __init__(self, page, cursor, query, search_criteria, per_page=MAX_RESULTS_PER_PAGE,
+                 jump_to_id=False):
+        super(WhooshResultsPagination, self).__init__(page, cursor, per_page,
+            jump_to_id)
+        self.query = query
+        self.search_criteria = search_criteria
+
+    def __call__(self):
+
+        from mediagoblin.plugins.search.views import search_in_indices
+        (results_found, all_results) = search_in_indices(self.query,
+                self.search_criteria)
+
+        if results_found:
+            return self.cursor
+            return all_results[0]['results']
+
+        return []
+
+
+class WhooshResultsCursor(object):
+    def __init__(self, results):
+        self.results = results
+        self.cursor_iter = results
+
+    def count(self):
+        return self.results['total_results_count']
+
+    def __iter__(self):
+        for res in self.results['results']:
+            yield res
