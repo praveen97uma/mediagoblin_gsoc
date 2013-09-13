@@ -13,34 +13,27 @@ from mediagoblin.tools.response import render_to_response, redirect
 _log = logging.getLogger(__name__)
 
 
-def search_in_indices(query, search_criteria={}, request=None):
+def search_in_index(query, search_criteria={}, request=None):
     indices = registry.IndexRegistry.indices()
     results_found = False
-    all_results = []
     
-    categories = search_criteria.get('categories', None)
+    category = search_criteria.get('category', None)
     
-    #if categories:
-    #    categories = categories.split(',')
-    _log.info(categories)
-    indices = registry.IndexRegistry.indices(categories=[categories])
+    _log.info(category)
+    index = registry.IndexRegistry.get(identifier=category)
     _log.info("second")
-    _log.info(indices) 
+    _log.info(index) 
     
     page = search_criteria.get('page', 1)
-    for index in indices:
-        _log.info("Page: %s"%(str(page)))
-        search_results = index.search(query, request, page=page)
-        if len(search_results['results'])>0:
-            all_results.append(search_results)
+    search_results = index.search(query, request, page=page)
     
-    _log.info("Total results found")
-    _log.info(all_results)
+    _log.info("Results found %s %s"%(category, page))
+    _log.info(search_results)
     
-    if all_results:
+    if len(search_results['results']) > 0:
         results_found = True
     
-    return (results_found, all_results)
+    return (results_found, search_results)
 
 def search_query(request):
     form = forms.SearchForm(request.form)
@@ -78,17 +71,18 @@ def search_query(request):
 
     for category in categories:
         search_criteria.update({
-            'categories': category
+            'category': category
             })
 
-        (r_f, r) = search_in_indices(query, search_criteria)
-        _log.info(r)
-        whoosh_results_cursor = WhooshResultsCursor(r[0])
-        paginator = WhooshResultsPagination(search_criteria['page'],
-                whoosh_results_cursor, query, search_criteria)
-        r[0]['paginator'] = paginator
-        results.append(r[0])
-        results_found |= r_f
+        (curr_results_found, curr_results) = search_in_index(query, search_criteria)
+        
+        if not curr_results_found:
+            continue
+
+        paginator = WhooshResultsPagination(query, search_criteria, curr_results)
+        curr_results['paginator'] = paginator
+        results.append(curr_results)
+        results_found |= curr_results_found
 
     context.update({
         'results_found': results_found,
