@@ -49,6 +49,10 @@ SUBCOMMAND_MAP = {
         'setup': 'mediagoblin.gmg_commands.search:search_parser_setup',
         'func': 'mediagoblin.gmg_commands.search:delete_all_indices',
         'help': 'Delete all existing indices'},
+    'reprocess': {
+        'setup': 'mediagoblin.gmg_commands.reprocess:reprocess_parser_setup',
+        'func': 'mediagoblin.gmg_commands.reprocess:reprocess',
+        'help': 'Reprocess media entries'},
     # 'theme': {
     #     'setup': 'mediagoblin.gmg_commands.theme:theme_parser_setup',
     #     'func': 'mediagoblin.gmg_commands.theme:theme',

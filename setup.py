@@ -48,8 +48,8 @@ setup(
         'pytest>=2.3.1',
         'pytest-xdist',
         'werkzeug>=0.7',
-        'celery==2.5.3',
-        'kombu==2.1.7',
+        'celery>=3.0',
+        'kombu',
         'jinja2',
         'sphinx',
         'Babel<1.0',
@@ -63,7 +63,7 @@ setup(
         'itsdangerous',
         'pytz',
         'six',
-        'oauthlib',
+        'oauthlib==0.5.0',
         ## This is optional!
         # 'translitcodec',
         ## For now we're expecting that users will install this from
