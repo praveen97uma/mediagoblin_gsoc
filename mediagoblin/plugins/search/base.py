@@ -262,23 +262,25 @@ class WhooshResultsPagination(Pagination):
     """
     Extends pagination.Pagination.
     """
-    def __init__(self, page, cursor, query, search_criteria, per_page=MAX_RESULTS_PER_PAGE,
+    def __init__(self, query, search_criteria, results, per_page=MAX_RESULTS_PER_PAGE,
                  jump_to_id=False):
-        super(WhooshResultsPagination, self).__init__(page, cursor, per_page,
-            jump_to_id)
+
         self.query = query
         self.search_criteria = search_criteria
+        self.results = results
+        page = search_criteria.get('page', 1)
+        cursor = WhooshResultsCursor(results)
+        super(WhooshResultsPagination, self).__init__(page, cursor, per_page,
+            jump_to_id)
 
     def __call__(self):
 
-        from mediagoblin.plugins.search.views import search_in_indices
-        (results_found, all_results) = search_in_indices(self.query,
-                self.search_criteria)
+        #from mediagoblin.plugins.search.views import search_in_indices
+        #(results_found, all_results) = search_in_indices(self.query,
+        #        self.search_criteria)
 
-        if results_found:
+        if len(self.results['results'])>0:
             return self.cursor
-            return all_results[0]['results']
-
         return []
 
 
@@ -288,6 +290,8 @@ class WhooshResultsCursor(object):
         self.cursor_iter = results
 
     def count(self):
+        _log.info("In wrc")
+        _log.info(self.results)
         return self.results['total_results_count']
 
     def __iter__(self):
