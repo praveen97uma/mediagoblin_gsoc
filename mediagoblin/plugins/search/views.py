@@ -23,7 +23,8 @@ def search_in_index(query, search_criteria={}, request=None):
     index = registry.IndexRegistry.get(identifier=category)
     _log.info("second")
     _log.info(index) 
-    
+    if not index:
+        return (results_found, [])
     page = search_criteria.get('page', 1)
     search_results = index.search(query, request, page=page)
     
