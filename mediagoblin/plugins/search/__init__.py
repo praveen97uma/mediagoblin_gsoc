@@ -19,7 +19,7 @@ import logging
 
 from mediagoblin.tools import pluginapi
 
-from mediagoblin.db.models import (MediaEntry, MediaTag)
+from mediagoblin.db.models import (MediaEntry, MediaTag, MediaComment)
 from mediagoblin.plugins.search import schemas
 from mediagoblin.plugins.search import indices
 from mediagoblin.plugins.search import registry
@@ -31,6 +31,7 @@ PLUGIN_DIR = os.path.dirname(__file__)
 
 
 def register_indices():
+    _log.info("Registering indices.")
     media_entry_search_index = indices.MediaEntrySearchIndex(
         model = MediaEntry,
         schema = schemas.MediaEntryIndexSchema,
@@ -49,6 +50,16 @@ def register_indices():
     _log.info("Registered %(index_name)s index for %(model_name)s"%({
         'index_name': media_tag_search_index.identifier,
         'model_name': MediaTag.__name__}))
+
+    media_comment_search_index = indices.MediaCommentSearchIndex(
+        model=MediaComment,
+        schema=schemas.MediaCommentIndexSchema,
+    )
+    registry.IndexRegistry.register(media_comment_search_index)
+    _log.info("Registered %(index_name)s index for %(model_name)s"%({
+        'index_name': media_comment_search_index.identifier,
+        'model_name': MediaComment.__name__}))
+    _log.info("Registered all indices.")
 
 def activate_orm_events_listeners():
     indices = registry.IndexRegistry.indices()
@@ -74,12 +85,12 @@ def setup_plugin():
     try:
         register_indices()
     except Exception as e:
-        _log.debug("Failed to register search indices: %s"%(e))
+        _log.info("Failed to register search indices: %s"%(e))
 
     try:
         activate_orm_events_listeners()
     except Exception as e:
-        _log.debug("Failed to start event listeners: %s"%(e))
+        _log.info("Failed to start event listeners: %s"%(e))
     #event.listen(MediaEntry, 'after_insert', mediaentry_add_listener)
     #event.listen(MediaEntry, 'before_insert', mediaentry_before_add_listener)
     #_log.info("Registered listening event") 
