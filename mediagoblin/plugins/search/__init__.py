@@ -19,7 +19,8 @@ import logging
 
 from mediagoblin.tools import pluginapi
 
-from mediagoblin.db.models import (MediaEntry, MediaTag, MediaComment)
+from mediagoblin.db.models import (MediaEntry, MediaTag, MediaComment,
+                                   Collection)
 from mediagoblin.plugins.search import schemas
 from mediagoblin.plugins.search import indices
 from mediagoblin.plugins.search import registry
@@ -59,7 +60,18 @@ def register_indices():
     _log.info("Registered %(index_name)s index for %(model_name)s"%({
         'index_name': media_comment_search_index.identifier,
         'model_name': MediaComment.__name__}))
+
+    collections_search_index = indices.CollectionSearchIndex(
+        model=Collection,
+        schema=schemas.CollectionIndexSchema,
+    )
+    registry.IndexRegistry.register(collections_search_index)
+    _log.info("Registered %(index_name)s index for %(model_name)s"%({
+        'index_name': collections_search_index.identifier,
+        'model_name': Collection.__name__}))
+
     _log.info("Registered all indices.")
+
 
 def activate_orm_events_listeners():
     indices = registry.IndexRegistry.indices()

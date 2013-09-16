@@ -1,6 +1,7 @@
 {% extends "mediagoblin/base.html" %}
 {% import "/mediagoblin/utils/wtforms.html" as wtforms_util %}
 {% from "mediagoblin/utils/object_gallery.html" import object_gallery %}
+{% from "mediagoblin/search/results_list.html" import results_list %}
 
 {% block mediagoblin_head %}
 <link rel="stylesheet" type="text/css"
@@ -35,7 +36,12 @@
                 </ul>
                 {% for result_category in results %}
                 <div id="{{ result_category['css_id'] }}">
+                    
+                {% if result_category['css_id']=="collections" %}
+                    {{ results_list(request, result_category['paginator'](), result_category['paginator']) }}
+                {% else %}
                     {{ object_gallery(request, result_category['paginator'](), result_category['paginator']) }}
+                {% endif %}
                     {#                        {% for result in result_category['results'] %}
 #                            <li><a href = "{{ result['url'] }} "> {{ result['slug'] }}</a></li>
 {% endfor %}

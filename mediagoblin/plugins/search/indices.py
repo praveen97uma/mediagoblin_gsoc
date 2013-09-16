@@ -120,3 +120,34 @@ class MediaCommentSearchIndex(SearchIndex):
         _log.info(all_results)
         return all_results
 
+class CollectionSearchIndex(SearchIndex):
+    def __init__(self, model, schema, search_index_dir=None,
+        use_multiprocessing=None):
+        super(CollectionSearchIndex, self).__init__(
+            model=model, schema=schema,
+            identifier=search_constants.COLLECTIONS,
+            search_index_dir=search_index_dir,
+            use_multiprocessing=use_multiprocessing)
+        
+        self.verbose_name = "Collections"
+        self.css_id = "collections"
+
+    def _interpret_results(self, results, request_obj):
+        _log.info("Searched in Collections")
+        _log.info(results)
+        all_results = {
+            'verbose_name': self.verbose_name,
+            'css_id': self.css_id,
+            'results': [],
+            'total_results_count': len(results),
+        }
+        obj_ids = set([result['id_stored'] for result in results])
+        search_results = []
+        for obj_id in obj_ids:
+            obj = self.model.query.get(obj_id)
+            search_results.append(obj)
+        all_results['results'] = search_results
+        _log.info("Found results for Media Comments")
+        _log.info(all_results)
+        return all_results
+

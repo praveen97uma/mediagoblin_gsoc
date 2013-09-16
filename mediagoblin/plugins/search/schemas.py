@@ -51,3 +51,19 @@ class MediaCommentIndexSchema(SchemaClass):
     content = TEXT
 
     created = DATETIME
+
+
+class CollectionIndexSchema(SchemaClass):
+    """
+    Represents the schema of the search index corresponding to
+    db.models.MediaCollection objects.
+    """
+
+    id = ID(unique=True)
+
+    id_stored = ID(stored=True)
+
+    slug = TEXT
+
+    created = DATETIME
+    description = TEXT
