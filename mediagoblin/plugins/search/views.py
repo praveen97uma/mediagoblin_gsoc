@@ -70,7 +70,7 @@ def search_query(request):
     _log.info("first")
     _log.info(categories)
 
-    for category in categories:
+    for (tab, category) in enumerate(categories):
         search_criteria.update({
             'category': category
             })
@@ -80,7 +80,8 @@ def search_query(request):
         if not curr_results_found:
             continue
 
-        paginator = WhooshResultsPagination(query, search_criteria, curr_results)
+        paginator = WhooshResultsPagination(query, search_criteria,
+                curr_results, extra_get_params={'tab': tab})
         curr_results['paginator'] = paginator
         results.append(curr_results)
         results_found |= curr_results_found

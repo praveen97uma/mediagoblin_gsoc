@@ -263,7 +263,7 @@ class WhooshResultsPagination(Pagination):
     Extends pagination.Pagination.
     """
     def __init__(self, query, search_criteria, results, per_page=MAX_RESULTS_PER_PAGE,
-                 jump_to_id=False):
+                 jump_to_id=False, extra_get_params={}):
 
         self.query = query
         self.search_criteria = search_criteria
@@ -271,7 +271,7 @@ class WhooshResultsPagination(Pagination):
         page = search_criteria.get('page', 1)
         cursor = WhooshResultsCursor(results)
         super(WhooshResultsPagination, self).__init__(page, cursor, per_page,
-            jump_to_id)
+            jump_to_id, extra_get_params=extra_get_params)
 
     def __call__(self):
 
