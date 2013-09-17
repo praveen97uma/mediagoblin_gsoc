@@ -47,6 +47,7 @@ def search_query(request):
         'query': query,
         'results_found': False,
     }
+    
     if not query:
         _log.info(query)
         return render_to_response(request, 'mediagoblin/search/search.html',
@@ -70,7 +71,7 @@ def search_query(request):
     _log.info("first")
     _log.info(categories)
 
-    for (tab, category) in enumerate(categories):
+    for category in categories:
         search_criteria.update({
             'category': category
             })
@@ -81,7 +82,7 @@ def search_query(request):
             continue
 
         paginator = WhooshResultsPagination(query, search_criteria,
-                curr_results, extra_get_params={'tab': tab})
+                curr_results, extra_get_params={'tab': category})
         curr_results['paginator'] = paginator
         results.append(curr_results)
         results_found |= curr_results_found
@@ -90,6 +91,15 @@ def search_query(request):
         'results_found': results_found,
         'results': results,
     })
+
+    tab = request.GET.get("tab", 0)
+    try:
+        tab = search_constants.ENABLED_INDICES.index(tab)
+    except ValueError:
+        tab = 1
+
+    context["tab"] = tab
+
     _log.info("query: %s", query)
     return render_to_response(request, 'mediagoblin/search/search.html',
         context)

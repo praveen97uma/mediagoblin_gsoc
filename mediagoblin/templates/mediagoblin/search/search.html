@@ -10,17 +10,9 @@
     src="{{ request.staticdirect('/js/extlib/jquery-ui.js') }}"></script>
 <script>
 
-function getParameterByName(name) {
-    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-        results = regex.exec(location.search);
-    return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-}
-
-var tab = getParameterByName("tab");
 
  $(document).ready(function() {
-     $( "#tabs" ).tabs({active:tab});
+     $( "#tabs" ).tabs({active:{{ tab }}});
     
 });
 </script>
